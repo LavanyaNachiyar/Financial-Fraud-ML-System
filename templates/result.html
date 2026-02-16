@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Prediction Result</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #020617;
+            color: white;
+            padding: 40px;
+        }
+
+        .card {
+            max-width: 800px;
+            margin: auto;
+            background: #0f172a;
+            padding: 30px;
+            border-radius: 10px;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            margin: 6px 0;
+        }
+
+        .back {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        a {
+            color: #22c55e;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="card">
+
+    <h2>{{ result }}</h2>
+    <h3>Fraud Probability: {{ probability }}%</h3>
+
+    <h4>Input Features Used:</h4>
+    <ul>
+        {% for key, value in features.items() %}
+            <li>{{ key }} : {{ value }}</li>
+        {% endfor %}
+    </ul>
+
+    <h4>Decision Explanation (Value-Based)</h4>
+    <ul>
+        {% if features.transaction_amount is defined and features.transaction_amount > 10000 %}
+            <li>🔴 High transaction amount detected</li>
+        {% else %}
+            <li>🟢 Transaction amount is within normal range</li>
+        {% endif %}
+
+        {% if features.login_attempts is defined and features.login_attempts > 5 %}
+            <li>🔴 Multiple login attempts detected</li>
+        {% endif %}
+
+        {% if features.vpn_used is defined and features.vpn_used == 1 %}
+            <li>🔴 VPN usage detected</li>
+        {% else %}
+            <li>🟢 No VPN usage detected</li>
+        {% endif %}
+
+        {% if features.merchant_risk is defined and features.merchant_risk > 0.8 %}
+            <li>🔴 High merchant risk score</li>
+        {% else %}
+            <li>🟢 Merchant risk is low</li>
+        {% endif %}
+    </ul>
+
+    <div class="back">
+        <a href="/">⬅ Go Back</a>
+    </div>
+
+</div>
+
+</body>
+</html>

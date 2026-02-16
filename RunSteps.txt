@@ -1,0 +1,7 @@
+1)open anaconda prompt
+
+2)activate myenv
+
+3)cd C:\Users\Lavanya Nachiyar\Desktop\One Pass Learning
+
+4)python app.py
