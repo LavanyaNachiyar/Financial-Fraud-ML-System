@@ -21,7 +21,7 @@ db = SQLAlchemy(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Ngrok configuration
-NGROK_ENABLED = os.getenv("NGROK_ENABLED", "true").lower() == "true"
+NGROK_ENABLED = os.getenv("NGROK_ENABLED", "false").lower() == "true"
 
 
 model = joblib.load("online_sgd_model.pkl")

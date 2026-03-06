@@ -11,11 +11,10 @@ echo Visit: https://dashboard.ngrok.com/get-started/your-authtoken
 echo.
 echo Step 3: Enter your authtoken below
 echo.
-set /p TOKEN="Paste your ngrok authtoken here: "
+set TOKEN=3AYkZf9mwDM0f3YBmdulqH8MNLy_5hr11dCwdBH3WpMudgkKr
 
 echo.
 echo Setting up ngrok...
-call venv\Scripts\activate.bat
 ngrok config add-authtoken %TOKEN%
 
 echo.
