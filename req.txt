@@ -1,6 +1,11 @@
 flask
-SQLALchemy==2.0.29
-scikit-learn==1.0.1
-numpy==1.23.5
+flask-sqlalchemy
+scikit-learn>=1.1.0
+numpy>=1.23.5
 pandas
 joblib
+qrcode[pil]
+flask-socketio
+matplotlib
+seaborn
+gunicorn

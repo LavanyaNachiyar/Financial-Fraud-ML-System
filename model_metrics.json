@@ -1,0 +1,21 @@
+{
+  "accuracy": 100.0,
+  "precision": 100.0,
+  "recall": 100.0,
+  "f1_score": 100.0,
+  "confusion_matrix": [
+    [
+      1000,
+      0
+    ],
+    [
+      0,
+      1000
+    ]
+  ],
+  "true_negatives": 1000,
+  "false_positives": 0,
+  "false_negatives": 0,
+  "true_positives": 1000,
+  "roc_auc": 100.0
+}
