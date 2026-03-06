@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan to Pay - Fraud Detection</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+        .container { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center; max-width: 500px; }
+        h1 { color: #333; margin-bottom: 10px; font-size: 28px; }
+        .subtitle { color: #666; margin-bottom: 30px; }
+        .qr-box { background: #f8f9fa; padding: 30px; border-radius: 15px; margin: 20px 0; }
+        .qr-box img { max-width: 300px; border: 3px solid #667eea; border-radius: 10px; }
+        .status { margin-top: 30px; padding: 20px; border-radius: 10px; display: none; }
+        .status.fraud { background: #fee; border: 2px solid #f44336; }
+        .status.normal { background: #efe; border: 2px solid #4caf50; }
+        .status h2 { margin-bottom: 10px; }
+        .status.fraud h2 { color: #f44336; }
+        .status.normal h2 { color: #4caf50; }
+        .btn { background: #667eea; color: white; padding: 12px 30px; border: none; border-radius: 25px; cursor: pointer; font-size: 16px; margin-top: 20px; text-decoration: none; display: inline-block; }
+        .btn:hover { background: #5568d3; }
+        .url-box { background: #f0f0f0; padding: 10px; border-radius: 5px; margin: 15px 0; word-break: break-all; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔒 Secure Payment Gateway</h1>
+        <p class="subtitle">Scan QR code to make payment</p>
+        
+        <div class="qr-box">
+            <img src="data:image/png;base64,{{ qr_code }}" alt="Payment QR Code">
+        </div>
+        
+        <div class="url-box">
+            <strong>Payment URL:</strong><br>{{ payment_url }}
+            {% if ngrok_url %}
+            <br><br>
+            <strong style="color: #667eea;">🌐 Public URL (Share this):</strong><br>{{ ngrok_url }}
+            {% endif %}
+        </div>
+        
+        <div id="status" class="status">
+            <h2 id="statusText"></h2>
+            <p id="statusDetails"></p>
+        </div>
+        
+        <a href="/" class="btn">Back to Dashboard</a>
+    </div>
+
+    <script>
+        const socket = io();
+        
+        socket.on('transaction_result', function(data) {
+            const statusDiv = document.getElementById('status');
+            const statusText = document.getElementById('statusText');
+            const statusDetails = document.getElementById('statusDetails');
+            
+            statusDiv.style.display = 'block';
+            
+            if (data.fraud) {
+                statusDiv.className = 'status fraud';
+                statusText.textContent = '🚨 FRAUD DETECTED!';
+                statusDetails.innerHTML = `Fraud Probability: <strong>${data.probability}%</strong><br>Transaction blocked for security.`;
+            } else {
+                statusDiv.className = 'status normal';
+                statusText.textContent = '✅ PAYMENT SUCCESSFUL';
+                statusDetails.innerHTML = `Fraud Probability: <strong>${data.probability}%</strong><br>Transaction approved.`;
+            }
+        });
+    </script>
+</body>
+</html>

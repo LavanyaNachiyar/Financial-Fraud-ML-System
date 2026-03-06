@@ -2,130 +2,100 @@
 <html>
 <head>
     <title>Bank Fraud Detection</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #0f172a;
-            color: white;
-            margin: 0;
-            padding: 0;
-        }
-
-        h2 {
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        form {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            max-width: 900px;
-            margin: auto;
-            background: #020617;
-            padding: 30px;
-            border-radius: 10px;
-        }
-
-        label {
-            font-size: 14px;
-            opacity: 0.8;
-        }
-
-        input {
-            width: 100%;
-            padding: 8px;
-            border-radius: 6px;
-            border: none;
-            margin-top: 5px;
-        }
-
-        .full {
-            grid-column: span 2;
-            text-align: center;
-        }
-
-        button {
-            padding: 12px 30px;
-            font-size: 16px;
-            border: none;
-            border-radius: 8px;
-            background: #22c55e;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #16a34a;
-        }
-        .h3
-        {
-            color:red;
-            text-decoration:none;
-            font-size:20px;
-            margin-left:1150px;
-        }
+        body { font-family: Arial, sans-serif; background: #0f172a; color: white; margin: 0; padding: 0; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background: #020617; }
+        .header h2 { margin: 0; }
+        .header-right { display: flex; gap: 15px; align-items: center; }
+        .qr-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; text-decoration: none; font-size: 14px; }
+        .qr-btn:hover { opacity: 0.9; }
+        .logout { color: #ef4444; text-decoration: none; font-size: 16px; }
+        h2 { text-align: center; margin: 20px 0; }
+        form { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 900px; margin: auto; background: #020617; padding: 30px; border-radius: 10px; }
+        label { font-size: 14px; opacity: 0.8; }
+        input { width: 100%; padding: 8px; border-radius: 6px; border: none; margin-top: 5px; }
+        .full { grid-column: span 2; text-align: center; }
+        button { padding: 12px 30px; font-size: 16px; border: none; border-radius: 8px; background: #22c55e; cursor: pointer; }
+        button:hover { background: #16a34a; }
+        .notification { position: fixed; top: 20px; right: 20px; background: white; color: #333; padding: 20px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); display: none; z-index: 1000; max-width: 300px; }
+        .notification.fraud { border-left: 4px solid #f44336; }
+        .notification.normal { border-left: 4px solid #4caf50; }
+        .notification h3 { margin: 0 0 10px 0; font-size: 16px; }
     </style>
 </head>
-
 <body>
-
-<h2>💳 Bank Transaction Fraud Detection</h2>
-<a href="{{ url_for('logout') }}" class="h3">Log Out</a>
-
-<form action="/predict" method="post">
-
-    <!-- LEFT SIDE -->
-    <div>
-        <label>Transaction Amount</label>
-        <input type="number" step="0.01" name="transaction_amount">
+    <div class="header">
+        <h2>💳 Bank Transaction Fraud Detection</h2>
+        <div class="header-right">
+            <a href="/model-performance" class="qr-btn" style="background: #8b5cf6;">🎯 Model Metrics</a>
+            <a href="/analytics" class="qr-btn" style="background: #f59e0b;">📊 Analytics</a>
+            <a href="/generate-qr" class="qr-btn">📱 Generate Payment QR</a>
+            <a href="{{ url_for('logout') }}" class="logout">Log Out</a>
+        </div>
     </div>
 
-    <div>
-        <label>Transaction Type (1=Debit, 0=Credit)</label>
-        <input type="number" name="transaction_type">
-    </div>
+    <form action="/predict" method="post">
+        <div>
+            <label>Transaction Amount</label>
+            <input type="number" step="0.01" name="transaction_amount">
+        </div>
+        <div>
+            <label>Transaction Type (1=Debit, 0=Credit)</label>
+            <input type="number" name="transaction_type">
+        </div>
+        <div>
+            <label>Transaction Time (0–23)</label>
+            <input type="number" name="transaction_time">
+        </div>
+        <div>
+            <label>Account Balance</label>
+            <input type="number" step="0.01" name="account_balance">
+        </div>
+        <div>
+            <label>Merchant Risk (0–1)</label>
+            <input type="number" step="0.01" name="merchant_risk">
+        </div>
+        <div>
+            <label>Device Risk (0–1)</label>
+            <input type="number" step="0.01" name="device_risk">
+        </div>
+        <div>
+            <label>Location Risk (0–1)</label>
+            <input type="number" step="0.01" name="location_risk">
+        </div>
+        <div>
+            <label>VPN Used (1=yes, 0=no)</label>
+            <input type="number" name="vpn_used">
+        </div>
+        <div>
+            <label>Login Attempts</label>
+            <input type="number" name="login_attempts">
+        </div>
+        <div class="full">
+            <button type="submit">Predict Fraud</button>
+        </div>
+    </form>
 
-    <div>
-        <label>Transaction Time (0–23)</label>
-        <input type="number" name="transaction_time">
-    </div>
+    <div id="notification" class="notification"></div>
 
-    <div>
-        <label>Account Balance</label>
-        <input type="number" step="0.01" name="account_balance">
-    </div>
-
-    <!-- RIGHT SIDE -->
-    <div>
-        <label>Merchant Risk (0–1)</label>
-        <input type="number" step="0.01" name="merchant_risk">
-    </div>
-
-    <div>
-        <label>Device Risk (0–1)</label>
-        <input type="number" step="0.01" name="device_risk">
-    </div>
-
-    <div>
-        <label>Location Risk (0–1)</label>
-        <input type="number" step="0.01" name="location_risk">
-    </div>
-
-    <div>
-        <label>VPN Used (1=yes, 0=no)</label>
-        <input type="number" name="vpn_used">
-    </div>
-
-    <div>
-        <label>Login Attempts</label>
-        <input type="number" name="login_attempts">
-    </div>
-
-    <div class="full">
-        <button type="submit">Predict Fraud</button>
-    </div>
-
-</form>
-
+    <script>
+        const socket = io();
+        const notification = document.getElementById('notification');
+        
+        socket.on('transaction_result', function(data) {
+            notification.style.display = 'block';
+            
+            if (data.fraud) {
+                notification.className = 'notification fraud';
+                notification.innerHTML = `<h3>🚨 Fraud Alert!</h3><p>Probability: ${data.probability}%</p><p>Transaction blocked</p>`;
+            } else {
+                notification.className = 'notification normal';
+                notification.innerHTML = `<h3>✅ Payment Success</h3><p>Probability: ${data.probability}%</p><p>Transaction approved</p>`;
+            }
+            
+            setTimeout(() => { notification.style.display = 'none'; }, 5000);
+        });
+    </script>
 </body>
 </html>
