@@ -1,0 +1,62 @@
+import pandas as pd
+import numpy as np
+import joblib
+from sklearn.linear_model import SGDClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_extraction import DictVectorizer
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+print("=" * 60)
+print("Retraining Model with New Dependencies")
+print("=" * 60)
+
+# Load data
+df = pd.read_csv("dataset.csv")
+y = df["label"].values
+X_df = df.drop(columns=["label"])
+
+# Convert to dict
+X_dict = X_df.to_dict(orient="records")
+
+# Vectorize
+vectorizer = DictVectorizer(sparse=False)
+X_vectorized = vectorizer.fit_transform(X_dict)
+
+# Scale
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X_vectorized)
+
+# Train model
+model = SGDClassifier(
+    loss="log_loss",  # Updated for scikit-learn 1.3+
+    learning_rate="optimal",
+    max_iter=1,
+    tol=None,
+    random_state=42
+)
+
+classes = np.array([0, 1])
+
+print("\nTraining model...")
+for i in range(len(X_scaled)):
+    model.partial_fit(
+        X_scaled[i].reshape(1, -1),
+        np.array([y[i]]),
+        classes=classes
+    )
+
+print("✅ One-pass online training completed")
+
+# Evaluate
+y_pred = model.predict(X_scaled)
+print("\n📊 Accuracy:", accuracy_score(y, y_pred))
+print("\n📄 Classification Report:")
+print(classification_report(y, y_pred))
+
+# Save models
+joblib.dump(model, 'online_sgd_model.pkl')
+joblib.dump(scaler, 'scaler.pkl')
+joblib.dump(vectorizer, 'vectorizer.pkl')
+
+print("\n✅ Models saved successfully!")
+print("=" * 60)
