@@ -5,7 +5,7 @@
     <style>
         body {
             font-family: Arial;
-            background: #020617;
+            background: #A6B1E1;
             color: white;
             padding: 40px;
         }
@@ -13,7 +13,7 @@
         .card {
             max-width: 800px;
             margin: auto;
-            background: #0f172a;
+            background: #424874;
             padding: 30px;
             border-radius: 10px;
         }
@@ -33,12 +33,89 @@
 
         .back {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 30px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
         }
 
         a {
-            color: #22c55e;
+            color: black;
             text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            background: #F4EEFF;
+            display: inline-block;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        a:hover {
+            background: #c8c3cf;
+        }
+        .fraud-modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.8); 
+            z-index: 2000; 
+            justify-content: center; 
+            align-items: center; 
+        }
+        .fraud-modal-content { 
+            background: white;
+            color: #333; 
+            padding: 30px; 
+            border-radius: 15px; 
+            max-width: 500px; 
+            text-align: center; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
+        }
+        .fraud-modal-content h2 { 
+            color: #f44336; 
+            margin-bottom: 20px; 
+        }
+        .fraud-modal-content .contact-info { 
+            background: #f5f5f5; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 15px 0; 
+            text-align: left; 
+        }
+        .fraud-modal-content .contact-info p { 
+            margin: 8px 0; 
+            font-size: 14px; 
+        }
+        .fraud-modal-content .contact-info strong { 
+            color: #f44336; 
+        }
+        .fraud-modal-content button { 
+            background: #f44336; color: white; 
+            border: none; 
+            padding: 12px 30px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin-top: 15px; 
+            font-size: 16px; 
+        }
+        .fraud-modal-content button:hover { 
+            background: #d32f2f; 
+        }
+        .btn-analytics { 
+            display: inline-block; 
+            background: #F4EEFF; 
+            color: black;
+            font-weight: bold; 
+            padding: 12px 24px; 
+            border-radius: 8px; 
+            text-decoration: none; 
+            margin-top: 20px; 
+        }
+        .btn-analytics:hover { 
+            background: #c8c3cf; 
         }
     </style>
 </head>
@@ -84,9 +161,37 @@
 
     <div class="back">
         <a href="/">⬅ Go Back</a>
+        <a href="/analytics" class="btn-analytics">View Fraud Analytics</a>
     </div>
 
 </div>
+
+<div id="fraudModal" class="fraud-modal">
+    <div class="fraud-modal-content">
+        <h2>🚨 FRAUD DETECTED!</h2>
+        <p>This transaction has been identified as fraudulent.</p>
+        <div class="contact-info">
+            <p><strong>📞 National Cyber Crime Helpline:</strong> 1930</p>
+            <p><strong>📧 Email:</strong> complaints@cybercrime.gov.in</p>
+            <p><strong>🌐 Report Online:</strong> cybercrime.gov.in</p>
+        </div>
+        <p style="font-size: 12px; color: #666; margin-top: 10px;">Please report this incident immediately if you did not initiate this transaction.</p>
+        <button onclick="closeFraudModal()">Close</button>
+    </div>
+</div>
+
+<script>
+    // Show fraud modal if fraud detected
+    {% if 'FRAUD' in result %}
+    window.onload = function() {
+        document.getElementById('fraudModal').style.display = 'flex';
+    };
+    {% endif %}
+    
+    function closeFraudModal() {
+        document.getElementById('fraudModal').style.display = 'none';
+    }
+</script>
 
 </body>
 </html>

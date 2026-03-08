@@ -3,35 +3,209 @@
 <head>
     <title>Transaction History</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #0f172a; color: white; }
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background: #020617; }
-        .header h1 { font-size: 24px; }
-        .nav { display: flex; gap: 15px; }
-        .nav a { color: white; text-decoration: none; padding: 8px 16px; background: #1e293b; border-radius: 6px; }
-        .nav a:hover { background: #334155; }
-        .container { max-width: 1400px; margin: 30px auto; padding: 0 20px; }
-        .filters { background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; }
-        .filters input, .filters select { padding: 8px 12px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: white; }
-        .filters button { padding: 8px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; }
-        .table-container { background: #1e293b; padding: 25px; border-radius: 12px; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; }
-        th { background: #0f172a; font-weight: 600; position: sticky; top: 0; }
-        .badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold; }
-        .badge.fraud { background: #fee; color: #dc2626; }
-        .badge.normal { background: #efe; color: #16a34a; }
-        .badge.high { background: #fef3c7; color: #d97706; }
-        .badge.low { background: #dbeafe; color: #2563eb; }
-        .pagination { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
-        .pagination a { padding: 8px 16px; background: #1e293b; color: white; text-decoration: none; border-radius: 6px; }
-        .pagination a:hover { background: #334155; }
-        .pagination a.active { background: #3b82f6; }
-        .stats-bar { display: flex; gap: 20px; margin-bottom: 20px; }
-        .stat { background: #1e293b; padding: 15px 25px; border-radius: 8px; flex: 1; text-align: center; }
-        .stat .label { font-size: 12px; color: #94a3b8; }
-        .stat .value { font-size: 24px; font-weight: bold; margin-top: 5px; }
-    </style>
+    * { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+}
+
+body { 
+    font-family: Arial, sans-serif; 
+    background: #A6B1E1; 
+    color: #000; 
+}
+
+/* HEADER */
+
+.header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 20px 40px; 
+    background: #424874; 
+    color: white;
+}
+
+.header h1 { 
+    font-size: 24px; 
+}
+
+/* NAVIGATION */
+
+.nav { 
+    display: flex; 
+    gap: 15px; 
+}
+
+.nav a { 
+    color: black; 
+    text-decoration: none; 
+    padding: 8px 16px; 
+    background: #F4EEFF; 
+    border-radius: 6px; 
+    font-weight: bold;
+}
+
+.nav a:hover { 
+    background: #DCD6F7; 
+}
+
+/* CONTAINER */
+
+.container { 
+    max-width: 1400px; 
+    margin: 30px auto; 
+    padding: 0 20px; 
+}
+
+/* FILTER BAR */
+
+.filters { 
+    background: #DCD6F7; 
+    padding: 20px; 
+    border-radius: 12px; 
+    margin-bottom: 20px; 
+    display: flex; 
+    gap: 15px; 
+    align-items: center; 
+}
+
+.filters input,
+.filters select { 
+    padding: 8px 12px; 
+    border-radius: 6px; 
+    border: 1px solid #A6B1E1; 
+    background: #F4EEFF; 
+    color: #000; 
+    font-weight: 600;
+}
+
+.filters button { 
+    padding: 8px 20px; 
+    background: #424874; 
+    color: white; 
+    border: none; 
+    border-radius: 6px; 
+    cursor: pointer; 
+    font-weight: bold;
+}
+
+.filters button:hover { 
+    background: #5a639c; 
+}
+
+/* TABLE CONTAINER */
+
+.table-container { 
+    background: #DCD6F7; 
+    padding: 25px; 
+    border-radius: 12px; 
+    overflow-x: auto; 
+}
+
+/* TABLE */
+
+table { 
+    width: 100%; 
+    border-collapse: collapse; 
+}
+
+th, td { 
+    padding: 12px; 
+    text-align: left; 
+    border-bottom: 1px solid #A6B1E1; 
+}
+
+th { 
+    background: #F4EEFF; 
+    font-weight: 600; 
+    position: sticky; 
+    top: 0; 
+}
+
+/* BADGES */
+
+.badge { 
+    padding: 4px 12px; 
+    border-radius: 12px; 
+    font-size: 12px; 
+    font-weight: bold; 
+}
+
+.badge.fraud { 
+    background: #fdecea; 
+    color: #d32f2f; 
+}
+
+.badge.normal { 
+    background: #e8f5e9; 
+    color: #2e7d32; 
+}
+
+.badge.high { 
+    background: #fff3cd; 
+    color: #ff9800; 
+}
+
+.badge.low { 
+    background: #e3f2fd; 
+    color: #1e88e5; 
+}
+
+/* PAGINATION */
+
+.pagination { 
+    display: flex; 
+    justify-content: center; 
+    gap: 10px; 
+    margin-top: 20px; 
+}
+
+.pagination a { 
+    padding: 8px 16px; 
+    background: #F4EEFF; 
+    color: black; 
+    text-decoration: none; 
+    border-radius: 6px; 
+    font-weight: bold;
+}
+
+.pagination a:hover { 
+    background: #DCD6F7; 
+}
+
+.pagination a.active { 
+    background: #424874; 
+    color: white; 
+}
+
+/* STATS BAR */
+
+.stats-bar { 
+    display: flex; 
+    gap: 20px; 
+    margin-bottom: 20px; 
+}
+
+.stat { 
+    background: #DCD6F7; 
+    padding: 15px 25px; 
+    border-radius: 8px; 
+    flex: 1; 
+    text-align: center; 
+}
+
+.stat .label { 
+    font-size: 12px; 
+    color: #424874; 
+}
+
+.stat .value { 
+    font-size: 24px; 
+    font-weight: bold; 
+    margin-top: 5px; 
+}
+</style>
 </head>
 <body>
     <div class="header">
