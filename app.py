@@ -25,6 +25,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 model = joblib.load("online_sgd_model.pkl")
 scaler = joblib.load("scaler.pkl")
 vectorizer = joblib.load("vectorizer.pkl")
+print("Models loaded successfully")
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -251,4 +252,4 @@ def model_performance():
     return render_template("model_performance.html", metrics=metrics)
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    socketio.run(app, host="0.0.0.0", port=port, debug=False)
+    socketio.run(app, host="0.0.0.0", port=port, debug=False,cors_allowed_origins="*", async_mode="eventlet")
