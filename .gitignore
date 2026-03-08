@@ -9,11 +9,6 @@ __pycache__/
 .ipynb_checkpoints
 *.ipynb_checkpoints/
 
-# Machine Learning Models
-*.pkl
-*.h5
-*.model
-
 # Database
 *.db
 *.sqlite
