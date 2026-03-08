@@ -5,3 +5,9 @@
 3)cd C:\Users\Lavanya Nachiyar\Desktop\One Pass Learning
 
 4)python app.py
+
+
+1. Run pip install -r req.txt
+2. Run the setup_ngrok, read it, add your auth token and run the bat file.
+3. Run the migrate_db.py 
+4. Run the app.py 
