@@ -9,4 +9,4 @@ flask-socketio
 matplotlib
 seaborn
 gunicorn
-eventlet
+eventlet>=0.40.3
