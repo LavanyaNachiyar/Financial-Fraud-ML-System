@@ -9,7 +9,6 @@ import io
 import base64
 from datetime import datetime
 from sklearn.feature_extraction import DictVectorizer
-from pyngrok import ngrok
 import os
 
 app = Flask(__name__)
@@ -19,10 +18,6 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
-
-# Ngrok configuration
-NGROK_ENABLED = os.getenv("NGROK_ENABLED", "false").lower() == "true"
-
 
 model = joblib.load("online_sgd_model.pkl")
 scaler = joblib.load("scaler.pkl")
@@ -110,11 +105,7 @@ def index():
 @app.route("/generate-qr")
 @login_required
 def generate_qr():
-    ngrok_tunnel = app.config.get('NGROK_TUNNEL')
-    if ngrok_tunnel:
-        payment_url = ngrok_tunnel.public_url + url_for("payment_page")
-    else:
-        payment_url = url_for("payment_page", _external=True)
+    payment_url = url_for("payment_page", _external=True)
     
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(payment_url)
@@ -126,7 +117,7 @@ def generate_qr():
     buf.seek(0)
     img_base64 = base64.b64encode(buf.getvalue()).decode()
     
-    return render_template("qr_code.html", qr_code=img_base64, payment_url=payment_url, ngrok_url=ngrok_tunnel.public_url if ngrok_tunnel else None)
+    return render_template("qr_code.html", qr_code=img_base64, payment_url=payment_url, ngrok_url=None)
 
 @app.route("/payment")
 def payment_page():
@@ -256,23 +247,4 @@ def model_performance():
         metrics = None
     return render_template("model_performance.html", metrics=metrics)
 if __name__ == "__main__":
-    ngrok_tunnel = None
-    
-    if NGROK_ENABLED:
-        try:
-            # Kill any existing ngrok tunnels
-            ngrok.kill()
-            ngrok_tunnel = ngrok.connect(5000)
-            print("\n" + "="*60)
-            print("🌐 NGROK TUNNEL ACTIVE")
-            print("="*60)
-            print(f"Public URL: {ngrok_tunnel.public_url}")
-            print(f"Local URL:  http://localhost:5000")
-            print("="*60 + "\n")
-        except Exception as e:
-            print(f"⚠️  Ngrok failed: {e}")
-            print("Running on localhost only...\n")
-    
-    # Store ngrok_tunnel in app config for access in routes
-    app.config['NGROK_TUNNEL'] = ngrok_tunnel
     socketio.run(app, debug=True, port=5000, use_reloader=False)
