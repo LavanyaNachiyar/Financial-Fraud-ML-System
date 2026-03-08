@@ -1,6 +1,6 @@
 flask
 flask-sqlalchemy
-scikit-learn>=1.1.0,<1.4.0
+scikit-learn==1.5.0
 numpy>=1.23.5,<2.0.0
 pandas
 joblib
