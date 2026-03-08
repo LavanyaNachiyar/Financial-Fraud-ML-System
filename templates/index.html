@@ -1,262 +1,300 @@
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Bank Fraud Detection</title>
-        <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<!DOCTYPE html>
+
+<html>
+<head>
+<title>Bank Fraud Detection</title>
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
 <style>
-body { 
+
+body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #A6B1E1; 
-    color: white; 
-    margin: 0; 
-    padding: 0; 
+    background: #A6B1E1;
+    margin: 0;
+    padding: 0;
 }
 
 /* HEADER */
 
-.header { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    padding: 20px 40px; 
-    background: #424874; 
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    background: #424874;
+    color: white;
 }
 
-.header h2 { 
-    margin: 0; 
-    font-weight: 600;
-    letter-spacing: 0.3px;
+.header-right{
+    display:flex;
+    gap:15px;
 }
 
-/* NAV */
-
-.header-right { 
-    display: flex; 
-    gap: 15px; 
-    align-items: center; 
+.qr-btn{
+    background:#F4EEFF;
+    color:black;
+    padding:10px 20px;
+    border-radius:8px;
+    text-decoration:none;
+    font-weight:600;
 }
 
-.qr-btn {   
-    font-family: inherit;
-    color: black; 
-    padding: 10px 20px; 
-    border: none; 
-    border-radius: 8px; 
-    cursor: pointer; 
-    text-decoration: none; 
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.logout { 
-    font-family: inherit;
-    color: white; 
-    text-decoration: none; 
-    font-size: 15px;
-    background: #d32f2f;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-weight: 600;
-}
-
-/* TITLE */
-
-h2 { 
-    text-align: center; 
-    margin: 20px 0; 
-    font-weight: 600;
+.logout{
+    background:#d32f2f;
+    color:white;
+    padding:10px 20px;
+    border-radius:8px;
+    text-decoration:none;
+    font-weight:600;
 }
 
 /* FORM */
 
-form { 
-    display: grid; 
-    grid-template-columns: 1fr 1fr; 
-    gap: 30px; 
-    max-width: 900px; 
+form{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:30px;
+    max-width:900px;
     margin:auto;
-    margin-top: 50px;
-    background: #DCD6F7; 
-    padding: 30px; 
-    border-radius: 10px;              
+    margin-top:60px;
+    background:#DCD6F7;
+    padding:30px;
+    border-radius:10px;
 }
 
-label { 
-    font-size: 14px; 
-    opacity: 0.85;
-    color: #000;
-    font-weight: 600;
+label{
+    font-weight:600;
+    color:black;
+    font-size:14px;
 }
 
-input { 
-    width: 80%; 
-    padding: 8px; 
-    border-radius: 6px; 
-    border: none; 
-    margin-top: 5px; 
-    font-weight: 500;
-    font-family: inherit;
+input{
+    width:85%;
+    padding:8px;
+    margin-top:5px;
+    border-radius:6px;
+    border:none;
 }
 
-/* BUTTON */
-
-button { 
-    font-family: inherit;
-    padding: 12px 30px; 
-    font-size: 15px; 
-    border: none; 
-    border-radius: 20px; 
-    background: #424874; 
-    cursor: pointer;
-    color: #f5f5f5;
-    font-weight: 600;
+.full{
+    grid-column:span 2;
+    text-align:center;
 }
 
-button:hover { 
-    background: #626aab; 
+button{
+    padding:12px 30px;
+    background:#424874;
+    border:none;
+    border-radius:20px;
+    color:white;
+    font-weight:600;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#626aab;
 }
 
 /* NOTIFICATION */
 
-.notification { 
-    font-family: inherit;
-    position: fixed; 
-    top: 20px; 
-    right: 20px; 
-    background: white; 
-    color: #333; 
-    padding: 20px; 
-    border-radius: 10px; 
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3); 
-    display: none; 
-    z-index: 1000; 
-    max-width: 300px; 
+.notification{
+    position:fixed;
+    top:20px;
+    right:20px;
+    background:white;
+    color:#333;
+    padding:20px;
+    border-radius:10px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.3);
+    display:none;
+    z-index:1000;
 }
 
-.notification h3 { 
-    margin: 0 0 10px 0; 
-    font-size: 16px; 
-    font-weight: 600;
+.notification.fraud{
+    border-left:4px solid red;
+}
+
+.notification.normal{
+    border-left:4px solid green;
 }
 
 /* MODAL */
 
-.fraud-modal-content { 
-    font-family: inherit;
-    background: white; 
-    color: #333; 
-    padding: 30px; 
-    border-radius: 15px; 
-    max-width: 500px; 
-    text-align: center; 
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5); 
+.fraud-modal{
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,0.6);
+    justify-content:center;
+    align-items:center;
+    z-index:2000;
 }
 
-.fraud-modal-content h2 { 
-    color: #f44336; 
-    margin-bottom: 20px; 
-    font-weight: 700;
+.fraud-modal-content{
+    background:#F4EEFF;
+    padding:30px;
+    border-radius:15px;
+    text-align:center;
+    max-width:450px;
+    box-shadow:0 10px 40px rgba(0,0,0,0.5);
 }
 
-.fraud-modal-content .contact-info p { 
-    margin: 8px 0; 
-    font-size: 14px; 
+.fraud-modal-content h2{
+    color:red;
 }
+
+.contact-info{
+    background:#DCD6F7;
+    padding:15px;
+    border-radius:8px;
+    margin:15px 0;
+    text-align:left;
+}
+
 </style>
-    </head>
-    <body>
-        <div class="header">
-            <h2>Bank Transaction Fraud Detection</h2>
-            <div class="header-right">
-                <a href="/model-performance" class="qr-btn" style="background: #F4EEFF;">Model Metrics</a>
-                <a href="/analytics" class="qr-btn" style="background: #F4EEFF;">Analytics</a>
-                <a href="/generate-qr" class="qr-btn" style="background: #F4EEFF;">Generate Payment QR</a>
-                <a href="{{ url_for('logout') }}" class="logout">Log Out</a>
-            </div>
-        </div>
 
-            <form action="/predict" method="post" id="fraudForm">
-                <div>
-                    <label>Transaction Amount</label>
-                    <input type="number" step="0.01" name="transaction_amount" required min="0.01">
-                </div>
-                <div>
-                    <label>Transaction Type (1=Debit, 0=Credit)</label>
-                    <input type="number" name="transaction_type" required min="0" max="1">
-                </div>
-                <div>
-                    <label>Transaction Time (0–23)</label>
-                    <input type="number" name="transaction_time" required min="0" max="23">
-                </div>
-                <div>
-                    <label>Account Balance</label>
-                    <input type="number" step="0.01" name="account_balance" required min="0">
-                </div>
-                <div>
-                    <label>Merchant Risk (0–1)</label>
-                    <input type="number" step="0.01" name="merchant_risk" required min="0" max="1">
-                </div>
-                <div>
-                    <label>Device Risk (0–1)</label>
-                    <input type="number" step="0.01" name="device_risk" required min="0" max="1">
-                </div>
-                <div>
-                    <label>Location Risk (0–1)</label>
-                    <input type="number" step="0.01" name="location_risk" required min="0" max="1">
-                </div>
-                <div>
-                    <label>VPN Used (1=yes, 0=no)</label>
-                    <input type="number" name="vpn_used" required min="0" max="1">
-                </div>
-                <div>
-                    <label>Login Attempts</label>
-                    <input type="number" name="login_attempts" required min="0">
-                </div>
-                <div class="full">
-                    <button type="submit">Predict Fraud</button>
-                </div>
-            </form>
+</head>
 
-        
+<body>
 
-        <div id="notification" class="notification"></div>
+<div class="header">
+<h2>Bank Transaction Fraud Detection</h2>
 
-        <div id="fraudModal" class="fraud-modal">
-            <div class="fraud-modal-content">
-                <h2>🚨 FRAUD ALERT!</h2>
-                <p>This transaction has been flagged as fraudulent and blocked for your security.</p>
-                <div class="contact-info">
-                    <p><strong>📞 National Cyber Crime Helpline:</strong> 1930</p>
-                    <p><strong>📧 Email:</strong> complaints@cybercrime.gov.in</p>
-                    <p><strong>🌐 Report Online:</strong> cybercrime.gov.in</p>
-                </div>
-                <p style="font-size: 12px; color: #666; margin-top: 10px;">Please report this incident immediately if you did not initiate this transaction.</p>
-                <button onclick="closeFraudModal()">Close</button>
-            </div>
-        </div>
+<div class="header-right">
+<a href="/model-performance" class="qr-btn">Model Metrics</a>
+<a href="/analytics" class="qr-btn">Analytics</a>
+<a href="/generate-qr" class="qr-btn">Generate Payment QR</a>
+<a href="{{ url_for('logout') }}" class="logout">Log Out</a>
+</div>
+</div>
 
-        <script>
-            const socket = io();
-            const notification = document.getElementById('notification');
-            
-            socket.on('transaction_result', function(data) {
-                notification.style.display = 'block';
-                
-                if (data.fraud) {
-                    notification.className = 'notification fraud';
-                    notification.innerHTML = `<h3>🚨 Fraud Alert!</h3><p>Probability: ${data.probability}%</p><p>Transaction blocked</p>`;
-                    document.getElementById('fraudModal').style.display = 'flex';
-                } else {
-                    notification.className = 'notification normal';
-                    notification.innerHTML = `<h3>✅ Payment Success</h3><p>Probability: ${data.probability}%</p><p>Transaction approved</p>`;
-                }
-                
-                setTimeout(() => { notification.style.display = 'none'; }, 5000);
-            });
-            
-            function closeFraudModal() {
-                document.getElementById('fraudModal').style.display = 'none';
-            }
-        </script>
-    </body>
-    </html>
+<form action="/predict" method="post" id="fraudForm">
+
+<div>
+<label>Transaction Amount</label>
+<input type="number" step="0.01" name="transaction_amount" required>
+</div>
+
+<div>
+<label>Transaction Type (1=Debit, 0=Credit)</label>
+<input type="number" name="transaction_type" required>
+</div>
+
+<div>
+<label>Transaction Time (0–23)</label>
+<input type="number" name="transaction_time" required>
+</div>
+
+<div>
+<label>Account Balance</label>
+<input type="number" step="0.01" name="account_balance" required>
+</div>
+
+<div>
+<label>Merchant Risk (0–1)</label>
+<input type="number" step="0.01" name="merchant_risk" required>
+</div>
+
+<div>
+<label>Device Risk (0–1)</label>
+<input type="number" step="0.01" name="device_risk" required>
+</div>
+
+<div>
+<label>Location Risk (0–1)</label>
+<input type="number" step="0.01" name="location_risk" required>
+</div>
+
+<div>
+<label>VPN Used (1=yes, 0=no)</label>
+<input type="number" name="vpn_used" required>
+</div>
+
+<div>
+<label>Login Attempts</label>
+<input type="number" name="login_attempts" required>
+</div>
+
+<div class="full">
+<button type="submit">Predict Fraud</button>
+</div>
+
+</form>
+
+<div id="notification" class="notification"></div>
+
+<!-- FRAUD MODAL -->
+
+<div id="fraudModal" class="fraud-modal">
+
+<div class="fraud-modal-content">
+
+<h2>🚨 FRAUD ALERT!</h2>
+
+<p>This transaction has been flagged as fraudulent and blocked for your security.</p>
+
+<div class="contact-info">
+<p><strong>📞 National Cyber Crime Helpline:</strong> 1930</p>
+<p><strong>📧 Email:</strong> complaints@cybercrime.gov.in</p>
+<p><strong>🌐 Report Online:</strong> cybercrime.gov.in</p>
+</div>
+
+<p style="font-size:12px;color:#555;">
+Please report this incident immediately if you did not initiate this transaction.
+</p>
+
+<button onclick="closeFraudModal()">Close</button>
+
+</div>
+</div>
+
+<script>
+
+const socket = io();
+const notification = document.getElementById('notification');
+
+socket.on('transaction_result', function(data){
+
+notification.style.display = 'block';
+
+if(data.fraud){
+
+notification.className = 'notification fraud';
+
+notification.innerHTML =
+`<h3>🚨 Fraud Alert</h3>
+<p>Probability: ${data.probability}%</p>
+<p>Transaction blocked</p>`;
+
+document.getElementById('fraudModal').style.display = 'flex';
+
+}
+
+else{
+
+notification.className = 'notification normal';
+
+notification.innerHTML =
+`<h3>✅ Payment Success</h3>
+<p>Probability: ${data.probability}%</p>
+<p>Transaction approved</p>`;
+
+}
+
+setTimeout(()=>{
+notification.style.display='none'
+},5000)
+
+});
+
+function closeFraudModal(){
+document.getElementById('fraudModal').style.display='none';
+}
+
+</script>
+
+</body>
+</html>
