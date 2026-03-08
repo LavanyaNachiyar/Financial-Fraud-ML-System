@@ -2,43 +2,198 @@
 <html>
 <head>
     <title>Model Performance</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #0f172a; color: white; }
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; background: #020617; }
-        .header h1 { font-size: 24px; }
-        .nav { display: flex; gap: 15px; }
-        .nav a { color: white; text-decoration: none; padding: 8px 16px; background: #1e293b; border-radius: 6px; }
-        .nav a:hover { background: #334155; }
-        .container { max-width: 1400px; margin: 30px auto; padding: 0 20px; }
-        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .metric-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; border-radius: 12px; text-align: center; }
-        .metric-card h3 { font-size: 14px; opacity: 0.9; margin-bottom: 10px; text-transform: uppercase; }
-        .metric-card .value { font-size: 42px; font-weight: bold; }
-        .metric-card.accuracy { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .metric-card.precision { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-        .metric-card.recall { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-        .metric-card.f1 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
-        .metric-card.auc { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-        .confusion-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px; }
-        .confusion-card { background: #1e293b; padding: 20px; border-radius: 12px; text-align: center; }
-        .confusion-card h3 { font-size: 14px; color: #94a3b8; margin-bottom: 10px; }
-        .confusion-card .value { font-size: 36px; font-weight: bold; }
-        .confusion-card.tn .value { color: #22c55e; }
-        .confusion-card.fp .value { color: #f59e0b; }
-        .confusion-card.fn .value { color: #ef4444; }
-        .confusion-card.tp .value { color: #3b82f6; }
-        .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
-        .chart-card { background: #1e293b; padding: 25px; border-radius: 12px; text-align: center; }
-        .chart-card h2 { margin-bottom: 20px; font-size: 18px; }
-        .chart-card img { max-width: 100%; border-radius: 8px; }
-        .info-box { background: #1e293b; padding: 25px; border-radius: 12px; margin-bottom: 30px; }
-        .info-box h2 { margin-bottom: 15px; color: #3b82f6; }
-        .info-box p { line-height: 1.8; color: #94a3b8; }
-        .alert { background: #fef3c7; color: #92400e; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f59e0b; }
-        .btn { padding: 12px 24px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-block; margin-top: 10px; }
-        .btn:hover { background: #2563eb; }
-    </style>
+<style>
+* { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+}
+
+body { 
+    font-family: Arial, sans-serif; 
+    background: #A6B1E1; 
+    color: #000; 
+}
+
+/* HEADER */
+
+.header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 20px 40px; 
+    background: #424874; 
+    color: white;
+}
+
+.header h1 { 
+    font-size: 24px; 
+}
+
+/* NAVIGATION */
+
+.nav { 
+    display: flex; 
+    gap: 15px; 
+}
+
+.nav a { 
+    color: black; 
+    text-decoration: none; 
+    padding: 8px 16px; 
+    background: #F4EEFF; 
+    border-radius: 6px; 
+    font-weight: bold;
+}
+
+.nav a:hover { 
+    background: #DCD6F7; 
+}
+
+/* MAIN CONTAINER */
+
+.container { 
+    max-width: 1400px; 
+    margin: 30px auto; 
+    padding: 0 20px; 
+}
+
+/* METRICS GRID */
+
+.metrics-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+    gap: 20px; 
+    margin-bottom: 30px; 
+}
+
+.metric-card { 
+    background: #DCD6F7; 
+    padding: 25px; 
+    border-radius: 12px; 
+    text-align: center; 
+}
+
+.metric-card h3 { 
+    font-size: 14px; 
+    color: #424874; 
+    margin-bottom: 10px; 
+    text-transform: uppercase; 
+}
+
+.metric-card .value { 
+    font-size: 42px; 
+    font-weight: bold; 
+    color: #424874;
+}
+
+/* CONFUSION MATRIX */
+
+.confusion-grid { 
+    display: grid; 
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 15px; 
+    margin-bottom: 30px; 
+}
+
+.confusion-card { 
+    background: #DCD6F7; 
+    padding: 20px; 
+    border-radius: 12px; 
+    text-align: center; 
+}
+
+.confusion-card h3 { 
+    font-size: 14px; 
+    color: #424874; 
+    margin-bottom: 10px; 
+}
+
+.confusion-card .value { 
+    font-size: 36px; 
+    font-weight: bold; 
+}
+
+.confusion-card.tn .value { color: #2e7d32; }
+.confusion-card.fp .value { color: #ff9800; }
+.confusion-card.fn .value { color: #d32f2f; }
+.confusion-card.tp .value { color: #424874; }
+
+/* CHARTS */
+
+.charts { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); 
+    gap: 20px; 
+}
+
+.chart-card { 
+    background: #DCD6F7; 
+    padding: 25px; 
+    border-radius: 12px; 
+    text-align: center; 
+}
+
+.chart-card h2 { 
+    margin-bottom: 20px; 
+    font-size: 18px; 
+    color: #424874;
+}
+
+.chart-card img { 
+    max-width: 100%; 
+    border-radius: 8px; 
+}
+
+/* INFO BOX */
+
+.info-box { 
+    background: #DCD6F7; 
+    padding: 25px; 
+    border-radius: 12px; 
+    margin-bottom: 30px; 
+}
+
+.info-box h2 { 
+    margin-bottom: 15px; 
+    color: #424874; 
+}
+
+.info-box p { 
+    line-height: 1.8; 
+    color: #333; 
+}
+
+/* ALERT */
+
+.alert { 
+    background: #F4EEFF; 
+    color: #424874; 
+    padding: 15px; 
+    border-radius: 8px; 
+    margin-bottom: 20px; 
+    border-left: 4px solid #424874; 
+}
+
+/* BUTTON */
+
+.btn { 
+    padding: 12px 24px; 
+    background: #424874; 
+    color: white; 
+    border: none; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    text-decoration: none; 
+    display: inline-block; 
+    margin-top: 10px; 
+    font-weight: bold;
+}
+
+.btn:hover { 
+    background: #5a639c; 
+}
+</style>
 </head>
 <body>
     <div class="header">
