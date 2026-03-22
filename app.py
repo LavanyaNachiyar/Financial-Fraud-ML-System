@@ -39,6 +39,35 @@ def login_required(func):
     return wrapper
 
 
+@app.route("/auth/callback")
+def auth_callback():
+    # Handles magic link clicks - extracts session from URL fragment via JS
+    return render_template("auth_callback.html")
+
+
+@app.route("/auth/session", methods=["POST"])
+def auth_session():
+    access_token = request.json.get("access_token")
+    try:
+        user_response = supabase.auth.get_user(access_token)
+        auth_user = user_response.user
+        email = auth_user.email
+
+        existing = supabase.table("users").select("*").eq("email", email).execute()
+        if existing.data:
+            user = existing.data[0]
+        else:
+            username = email.split("@")[0]
+            result = supabase.table("users").insert({"username": username, "email": email}).execute()
+            user = result.data[0]
+
+        session["user_id"] = user["id"]
+        session["username"] = user["username"]
+        return jsonify({"redirect": url_for("index")})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 401
+
+
 @app.route("/register")
 def register():
     return redirect(url_for("login"))
@@ -49,7 +78,13 @@ def login():
     if request.method == "POST":
         email = request.form["email"]
         try:
-            supabase.auth.sign_in_with_otp({"email": email})
+            supabase.auth.sign_in_with_otp({
+                "email": email,
+                "options": {
+                    "should_create_user": True,
+                    "email_redirect_to": "https://financial-fraud-ml-system.onrender.com/auth/callback"
+                }
+            })
             session["otp_email"] = email
             flash("OTP sent to your email.", "success")
             return redirect(url_for("verify_otp"))
