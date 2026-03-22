@@ -130,6 +130,19 @@ def predict():
 
     result = "🚨 FRAUD TRANSACTION" if prediction == 1 else "✅ NORMAL TRANSACTION"
 
+    supabase.table("transactions").insert({
+        "user_id": session.get("user_id"),
+        "amount": input_data.get("transaction_amount", 0),
+        "transaction_type": int(input_data.get("transaction_type", 0)),
+        "transaction_time": int(input_data.get("transaction_time", 0)),
+        "account_balance": input_data.get("account_balance", 0),
+        "merchant_risk": input_data.get("merchant_risk", 0),
+        "is_fraud": bool(prediction),
+        "fraud_probability": round(proba * 100, 2),
+        "ip_address": request.remote_addr,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }).execute()
+
     reasons = []
     if input_data.get("transaction_amount", 0) > 10000:
         reasons.append("🔴 High transaction amount detected")
