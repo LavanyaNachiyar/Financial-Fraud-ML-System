@@ -3,66 +3,25 @@
 <head>
     <title>Login</title>
     <style>
-body {
-    font-family: Arial, sans-serif;
-    background: #A6B1E1;
-    color: #000;
-    padding: 40px;
-}
-.card {
-    max-width: 400px;
-    margin: auto;
-    background: #DCD6F7;
-    padding: 30px;
-    border-radius: 10px;
-}
-h2 {
-    text-align: center;
-    margin-bottom: 20px;
-    color: #424874;
-}
-label {
-    display: block;
-    margin-top: 12px;
-    font-weight: bold;
-    color: #424874;
-}
-input {
-    width: 100%;
-    padding: 10px;
-    margin-top: 6px;
-    border-radius: 6px;
-    border: 1px solid #A6B1E1;
-    outline: none;
-    background: #F4EEFF;
-    font-weight: 600;
-    box-sizing: border-box;
-}
+body { font-family: Arial, sans-serif; background: #A6B1E1; color: #000; padding: 40px; }
+.card { max-width: 400px; margin: auto; background: #DCD6F7; padding: 30px; border-radius: 10px; }
+h2 { text-align: center; margin-bottom: 20px; color: #424874; }
+label { display: block; margin-top: 12px; font-weight: bold; color: #424874; }
+input { width: 100%; padding: 10px; margin-top: 6px; border-radius: 6px; border: 1px solid #A6B1E1; outline: none; background: #F4EEFF; font-weight: 600; box-sizing: border-box; }
 input:focus { border-color: #424874; }
-button {
-    width: 100%;
-    padding: 12px;
-    margin-top: 20px;
-    background: #424874;
-    border: none;
-    color: white;
-    font-size: 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-}
+button { width: 100%; padding: 12px; margin-top: 20px; background: #424874; border: none; color: white; font-size: 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
 button:hover { background: #5a639c; }
-.link { text-align: center; margin-top: 15px; }
 .msg { text-align: center; margin-bottom: 10px; padding: 8px; border-radius: 6px; }
 .msg.success { background: #e8f5e9; color: #2e7d32; }
 .msg.danger { background: #fdecea; color: #d32f2f; }
 .subtitle { text-align: center; color: #555; font-size: 14px; margin-bottom: 10px; }
+#password-field { display: none; }
     </style>
 </head>
 <body>
 <div class="card">
-    <h2>Sign In / Register</h2>
-    <p class="subtitle">Enter your email to receive a magic link</p>
+    <h2>Sign In</h2>
+    <p class="subtitle" id="subtitle">Enter your email to continue</p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
@@ -70,11 +29,44 @@ button:hover { background: #5a639c; }
       {% endfor %}
     {% endwith %}
 
-    <form method="POST">
+    <form method="POST" id="login-form">
         <label>Email</label>
-        <input type="email" name="email" required autofocus>
-        <button type="submit">Send Magic Link</button>
+        <input type="email" name="email" id="email-input" required autofocus>
+
+        <div id="password-field">
+            <label>Password</label>
+            <input type="password" name="password" id="password-input">
+        </div>
+
+        <button type="button" id="continue-btn" onclick="checkEmail()">Continue</button>
+        <button type="submit" id="login-btn" style="display:none">Login</button>
     </form>
 </div>
+<script>
+    async function checkEmail() {
+        const email = document.getElementById("email-input").value.trim();
+        if (!email) return;
+
+        const res = await fetch("/auth/check-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+
+        if (data.exists) {
+            // Returning user — show password field
+            document.getElementById("password-field").style.display = "block";
+            document.getElementById("password-input").required = true;
+            document.getElementById("subtitle").textContent = "Welcome back! Enter your password.";
+            document.getElementById("continue-btn").style.display = "none";
+            document.getElementById("login-btn").style.display = "block";
+            document.getElementById("email-input").readOnly = true;
+        } else {
+            // New user — submit form to send magic link
+            document.getElementById("login-form").submit();
+        }
+    }
+</script>
 </body>
 </html>
