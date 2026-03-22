@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Signing you in...</title>
+    <style>
+body { font-family: Arial, sans-serif; background: #A6B1E1; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+.card { background: #DCD6F7; padding: 40px; border-radius: 10px; text-align: center; }
+h2 { color: #424874; margin-bottom: 10px; }
+p { color: #555; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>Signing you in...</h2>
+    <p>Please wait while we verify your identity.</p>
+</div>
+<script>
+    // Supabase puts the token in the URL hash fragment after magic link click
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    const access_token = params.get("access_token");
+
+    if (access_token) {
+        fetch("/auth/session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ access_token })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.redirect) window.location.href = data.redirect;
+            else window.location.href = "/login";
+        })
+        .catch(() => window.location.href = "/login");
+    } else {
+        window.location.href = "/login";
+    }
+</script>
+</body>
+</html>
