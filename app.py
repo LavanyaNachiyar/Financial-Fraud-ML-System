@@ -86,10 +86,9 @@ def login():
                 }
             })
             session["otp_email"] = email
-            flash("OTP sent to your email.", "success")
             return redirect(url_for("verify_otp"))
         except Exception as e:
-            flash("Failed to send OTP. Try again.", "danger")
+            flash("Failed to send link. Try again.", "danger")
     return render_template("login.html")
 
 
@@ -97,35 +96,14 @@ def login():
 def verify_otp():
     if "otp_email" not in session:
         return redirect(url_for("login"))
+    return render_template("verify_otp.html")
 
-    if request.method == "POST":
-        email = session["otp_email"]
-        token = request.form["otp"]
-        username = request.form.get("username", "").strip()
-        try:
-            response = supabase.auth.verify_otp({"email": email, "token": token, "type": "email"})
-            auth_user = response.user
 
-            existing = supabase.table("users").select("*").eq("email", email).execute()
-            if existing.data:
-                user = existing.data[0]
-            else:
-                if not username:
-                    flash("Please enter a username to complete registration.", "danger")
-                    return render_template("verify_otp.html", show_username=True)
-                result = supabase.table("users").insert({"username": username, "email": email}).execute()
-                user = result.data[0]
-
-            session.pop("otp_email", None)
-            session["user_id"] = user["id"]
-            session["username"] = user["username"]
-            return redirect(url_for("index"))
-        except Exception as e:
-            flash("Invalid or expired OTP. Try again.", "danger")
-
-    existing = supabase.table("users").select("id").eq("email", session["otp_email"]).execute()
-    show_username = not existing.data
-    return render_template("verify_otp.html", show_username=show_username)
+@app.route("/auth/check")
+def auth_check():
+    if "user_id" in session:
+        return jsonify({"logged_in": True})
+    return jsonify({"logged_in": False})
 
 
 @app.route("/logout")
