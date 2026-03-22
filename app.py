@@ -88,7 +88,7 @@ def login():
             session["otp_email"] = email
             return redirect(url_for("verify_otp"))
         except Exception as e:
-            flash("Failed to send link. Try again.", "danger")
+            flash(f"Failed to send link: {str(e)}", "danger")
     return render_template("login.html")
 
 
