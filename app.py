@@ -2,7 +2,7 @@ import eventlet
 eventlet.monkey_patch()
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response
-from flask_socketio import SocketIO, emit
+from werkzeug.security import generate_password_hash, check_password_hash
 from supabase import create_client, Client
 import joblib
 import numpy as np
@@ -26,6 +26,8 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Temporary store for verified logins keyed by email
 _verified_users = {}
+# Temporary store for emails pending password setup
+_pending_password = {}
 
 model = joblib.load("online_sgd_model.pkl")
 scaler = joblib.load("scaler.pkl")
@@ -53,26 +55,42 @@ def auth_session():
     access_token = request.json.get("access_token")
     try:
         user_response = supabase.auth.get_user(access_token)
-        auth_user = user_response.user
-        email = auth_user.email
+        email = user_response.user.email
 
         existing = supabase.table("users").select("*").eq("email", email).execute()
         if existing.data:
             user = existing.data[0]
+            # Returning verified user — log them in directly
+            _verified_users[email] = {"user_id": user["id"], "username": user["username"]}
         else:
-            username = email.split("@")[0]
-            result = supabase.table("users").insert({"username": username, "email": email}).execute()
-            user = result.data[0]
+            # New user — mark as pending password setup
+            _pending_password[email] = True
 
-        # Store in server-side dict so the original tab can pick it up
-        _verified_users[email] = {"user_id": user["id"], "username": user["username"]}
-
-        # Also set session for the callback tab
-        session["user_id"] = user["id"]
-        session["username"] = user["username"]
-        return jsonify({"redirect": url_for("index")})
+        session["user_id"] = existing.data[0]["id"] if existing.data else None
+        session["username"] = existing.data[0]["username"] if existing.data else None
+        return jsonify({"status": "verified", "new_user": not bool(existing.data), "email": email})
     except Exception as e:
         return jsonify({"error": str(e)}), 401
+
+
+@app.route("/setup-password", methods=["POST"])
+def setup_password():
+    email = session.get("otp_email")
+    if not email or email not in _pending_password:
+        return redirect(url_for("login"))
+    username = request.form["username"].strip()
+    password = request.form["password"].strip()
+    if not username or not password:
+        flash("Username and password are required.", "danger")
+        return redirect(url_for("verify_otp"))
+    hashed_pw = generate_password_hash(password)
+    result = supabase.table("users").insert({"username": username, "email": email, "password": hashed_pw, "is_verified": True}).execute()
+    user = result.data[0]
+    _pending_password.pop(email, None)
+    session.pop("otp_email", None)
+    session["user_id"] = user["id"]
+    session["username"] = user["username"]
+    return redirect(url_for("index"))
 
 
 @app.route("/register")
@@ -84,18 +102,36 @@ def register():
 def login():
     if request.method == "POST":
         email = request.form["email"]
-        try:
-            supabase.auth.sign_in_with_otp({
-                "email": email,
-                "options": {
-                    "should_create_user": True,
-                    "email_redirect_to": "https://financial-fraud-ml-system.onrender.com/auth/callback"
-                }
-            })
-            session["otp_email"] = email
-            return redirect(url_for("verify_otp"))
-        except Exception as e:
-            flash(f"Failed to send link: {str(e)}", "danger")
+        password = request.form.get("password", "").strip()
+
+        existing = supabase.table("users").select("*").eq("email", email).execute()
+
+        if existing.data:
+            # Returning user — use password login
+            user = existing.data[0]
+            if not user.get("is_verified"):
+                flash("Please verify your email first.", "danger")
+                return render_template("login.html")
+            if not password or not check_password_hash(user["password"], password):
+                flash("Invalid password.", "danger")
+                return render_template("login.html")
+            session["user_id"] = user["id"]
+            session["username"] = user["username"]
+            return redirect(url_for("index"))
+        else:
+            # New user — send magic link for email verification
+            try:
+                supabase.auth.sign_in_with_otp({
+                    "email": email,
+                    "options": {
+                        "should_create_user": True,
+                        "email_redirect_to": "https://financial-fraud-ml-system.onrender.com/auth/callback"
+                    }
+                })
+                session["otp_email"] = email
+                return redirect(url_for("verify_otp"))
+            except Exception as e:
+                flash(f"Failed to send link: {str(e)}", "danger")
     return render_template("login.html")
 
 
@@ -106,11 +142,17 @@ def verify_otp():
     return render_template("verify_otp.html")
 
 
+@app.route("/auth/check-email", methods=["POST"])
+def auth_check_email():
+    email = request.json.get("email", "")
+    existing = supabase.table("users").select("id").eq("email", email).execute()
+    return jsonify({"exists": bool(existing.data)})
+
+
 @app.route("/auth/check")
 def auth_check():
     if "user_id" in session:
         return jsonify({"logged_in": True})
-    # Check if the waiting tab's email has been verified in another tab
     email = session.get("otp_email")
     if email and email in _verified_users:
         user = _verified_users.pop(email)
@@ -118,6 +160,8 @@ def auth_check():
         session["username"] = user["username"]
         session.pop("otp_email", None)
         return jsonify({"logged_in": True})
+    if email and email in _pending_password:
+        return jsonify({"logged_in": False, "setup_password": True})
     return jsonify({"logged_in": False})
 
 
