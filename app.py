@@ -17,7 +17,7 @@ from sklearn.feature_extraction import DictVectorizer
 import os
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
+app.secret_key = os.environ.get("SECRET_KEY") or "supersecretkey"
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
@@ -204,22 +204,39 @@ def transactions():
     offset = (page - 1) * per_page
 
     result = supabase.table("transactions").select("*", count="exact").order("timestamp", desc=True).range(offset, offset + per_page - 1).execute()
-    total = result.count
+    total = result.count or 0
+    pages = max(1, (total + per_page - 1) // per_page)
+
+    # Parse timestamp strings to datetime objects
     items = result.data
+    for t in items:
+        if isinstance(t.get("timestamp"), str):
+            t["timestamp"] = datetime.fromisoformat(t["timestamp"].replace("Z", "+00:00"))
 
     class Pagination:
-        def __init__(self, items, page, per_page, total):
+        def __init__(self, items, page, per_page, total, pages):
             self.items = items
             self.page = page
             self.per_page = per_page
             self.total = total
-            self.pages = (total + per_page - 1) // per_page
+            self.pages = pages
             self.has_prev = page > 1
-            self.has_next = page < self.pages
+            self.has_next = page < pages
             self.prev_num = page - 1
             self.next_num = page + 1
 
-    return render_template("transactions.html", transactions=Pagination(items, page, per_page, total))
+        def iter_pages(self, left_edge=1, right_edge=1, left_current=1, right_current=2):
+            last = 0
+            for num in range(1, self.pages + 1):
+                if (num <= left_edge or
+                    (self.page - left_current - 1 < num < self.page + right_current) or
+                        num > self.pages - right_edge):
+                    if last + 1 != num:
+                        yield None
+                    yield num
+                    last = num
+
+    return render_template("transactions.html", transactions=Pagination(items, page, per_page, total, pages))
 
 
 @app.route("/export-csv")
