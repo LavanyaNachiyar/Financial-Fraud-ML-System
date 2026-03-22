@@ -3,7 +3,6 @@ eventlet.monkey_patch()
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response
 from flask_socketio import SocketIO, emit
-from werkzeug.security import generate_password_hash, check_password_hash
 from supabase import create_client, Client
 import joblib
 import numpy as np
@@ -40,44 +39,58 @@ def login_required(func):
     return wrapper
 
 
-@app.route("/register", methods=["GET", "POST"])
+@app.route("/register")
 def register():
-    if request.method == "POST":
-        username = request.form["username"]
-        email = request.form["email"]
-        password = request.form["password"]
-
-        existing = supabase.table("users").select("id").eq("email", email).execute()
-        if existing.data:
-            flash("Email already exists", "danger")
-            return redirect(url_for("register"))
-
-        hashed_pw = generate_password_hash(password)
-        supabase.table("users").insert({"username": username, "email": email, "password": hashed_pw}).execute()
-
-        flash("Registration successful. Please login.", "success")
-        return redirect(url_for("login"))
-
-    return render_template("register.html")
+    return redirect(url_for("login"))
 
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         email = request.form["email"]
-        password = request.form["password"]
+        try:
+            supabase.auth.sign_in_with_otp({"email": email})
+            session["otp_email"] = email
+            flash("OTP sent to your email.", "success")
+            return redirect(url_for("verify_otp"))
+        except Exception as e:
+            flash("Failed to send OTP. Try again.", "danger")
+    return render_template("login.html")
 
-        result = supabase.table("users").select("*").eq("email", email).execute()
-        user = result.data[0] if result.data else None
 
-        if user and check_password_hash(user["password"], password):
+@app.route("/verify-otp", methods=["GET", "POST"])
+def verify_otp():
+    if "otp_email" not in session:
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        email = session["otp_email"]
+        token = request.form["otp"]
+        username = request.form.get("username", "").strip()
+        try:
+            response = supabase.auth.verify_otp({"email": email, "token": token, "type": "email"})
+            auth_user = response.user
+
+            existing = supabase.table("users").select("*").eq("email", email).execute()
+            if existing.data:
+                user = existing.data[0]
+            else:
+                if not username:
+                    flash("Please enter a username to complete registration.", "danger")
+                    return render_template("verify_otp.html", show_username=True)
+                result = supabase.table("users").insert({"username": username, "email": email}).execute()
+                user = result.data[0]
+
+            session.pop("otp_email", None)
             session["user_id"] = user["id"]
             session["username"] = user["username"]
             return redirect(url_for("index"))
-        else:
-            flash("Invalid credentials", "danger")
+        except Exception as e:
+            flash("Invalid or expired OTP. Try again.", "danger")
 
-    return render_template("login.html")
+    existing = supabase.table("users").select("id").eq("email", session["otp_email"]).execute()
+    show_username = not existing.data
+    return render_template("verify_otp.html", show_username=show_username)
 
 
 @app.route("/logout")
