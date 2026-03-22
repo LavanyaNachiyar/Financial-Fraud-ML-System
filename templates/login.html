@@ -62,7 +62,7 @@ button:hover { background: #5a639c; }
 <body>
 <div class="card">
     <h2>Sign In / Register</h2>
-    <p class="subtitle">Enter your email to receive a one-time password</p>
+    <p class="subtitle">Enter your email to receive a magic link</p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
@@ -73,7 +73,7 @@ button:hover { background: #5a639c; }
     <form method="POST">
         <label>Email</label>
         <input type="email" name="email" required autofocus>
-        <button type="submit">Send OTP</button>
+        <button type="submit">Send Magic Link</button>
     </form>
 </div>
 </body>
