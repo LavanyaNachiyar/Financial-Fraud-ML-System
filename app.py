@@ -24,6 +24,9 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+# Temporary store for verified logins keyed by email
+_verified_users = {}
+
 model = joblib.load("online_sgd_model.pkl")
 scaler = joblib.load("scaler.pkl")
 vectorizer = joblib.load("vectorizer.pkl")
@@ -61,6 +64,10 @@ def auth_session():
             result = supabase.table("users").insert({"username": username, "email": email}).execute()
             user = result.data[0]
 
+        # Store in server-side dict so the original tab can pick it up
+        _verified_users[email] = {"user_id": user["id"], "username": user["username"]}
+
+        # Also set session for the callback tab
         session["user_id"] = user["id"]
         session["username"] = user["username"]
         return jsonify({"redirect": url_for("index")})
@@ -102,6 +109,14 @@ def verify_otp():
 @app.route("/auth/check")
 def auth_check():
     if "user_id" in session:
+        return jsonify({"logged_in": True})
+    # Check if the waiting tab's email has been verified in another tab
+    email = session.get("otp_email")
+    if email and email in _verified_users:
+        user = _verified_users.pop(email)
+        session["user_id"] = user["user_id"]
+        session["username"] = user["username"]
+        session.pop("otp_email", None)
         return jsonify({"logged_in": True})
     return jsonify({"logged_in": False})
 
