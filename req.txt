@@ -1,5 +1,4 @@
 flask
-flask-sqlalchemy
 scikit-learn==1.5.0
 numpy>=1.23.5,<2.0.0
 pandas
@@ -10,3 +9,4 @@ matplotlib
 seaborn
 gunicorn
 eventlet>=0.40.3
+supabase

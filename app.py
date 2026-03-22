@@ -1,25 +1,28 @@
 import eventlet
 eventlet.monkey_patch()
 
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response
 from flask_socketio import SocketIO, emit
 from werkzeug.security import generate_password_hash, check_password_hash
+from supabase import create_client, Client
 import joblib
 import numpy as np
 import qrcode
 import io
 import base64
-from datetime import datetime
+import csv
+import json
+from datetime import datetime, timezone
 from sklearn.feature_extraction import DictVectorizer
 import os
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey"
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///users.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.secret_key = os.environ.get("SECRET_KEY", "supersecretkey")
 
-db = SQLAlchemy(app)
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 model = joblib.load("online_sgd_model.pkl")
@@ -27,27 +30,6 @@ scaler = joblib.load("scaler.pkl")
 vectorizer = joblib.load("vectorizer.pkl")
 print("Models loaded successfully")
 
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
-
-class Transaction(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    amount = db.Column(db.Float, nullable=False)
-    transaction_type = db.Column(db.Integer, nullable=False)
-    transaction_time = db.Column(db.Integer, nullable=False)
-    account_balance = db.Column(db.Float, nullable=False)
-    merchant_risk = db.Column(db.Float, nullable=False)
-    is_fraud = db.Column(db.Boolean, nullable=False)
-    fraud_probability = db.Column(db.Float, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    ip_address = db.Column(db.String(50), nullable=True)
-
-with app.app_context():
-    db.create_all()
 
 def login_required(func):
     def wrapper(*args, **kwargs):
@@ -57,6 +39,7 @@ def login_required(func):
     wrapper.__name__ = func.__name__
     return wrapper
 
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -64,20 +47,19 @@ def register():
         email = request.form["email"]
         password = request.form["password"]
 
-        if User.query.filter_by(email=email).first():
+        existing = supabase.table("users").select("id").eq("email", email).execute()
+        if existing.data:
             flash("Email already exists", "danger")
             return redirect(url_for("register"))
 
         hashed_pw = generate_password_hash(password)
-
-        user = User(username=username, email=email, password=hashed_pw)
-        db.session.add(user)
-        db.session.commit()
+        supabase.table("users").insert({"username": username, "email": email, "password": hashed_pw}).execute()
 
         flash("Registration successful. Please login.", "success")
         return redirect(url_for("login"))
 
     return render_template("register.html")
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -85,47 +67,53 @@ def login():
         email = request.form["email"]
         password = request.form["password"]
 
-        user = User.query.filter_by(email=email).first()
+        result = supabase.table("users").select("*").eq("email", email).execute()
+        user = result.data[0] if result.data else None
 
-        if user and check_password_hash(user.password, password):
-            session["user_id"] = user.id
-            session["username"] = user.username
+        if user and check_password_hash(user["password"], password):
+            session["user_id"] = user["id"]
+            session["username"] = user["username"]
             return redirect(url_for("index"))
         else:
             flash("Invalid credentials", "danger")
 
     return render_template("login.html")
 
+
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
+
 
 @app.route("/")
 @login_required
 def index():
     return render_template("index.html", username=session["username"])
 
+
 @app.route("/generate-qr")
 @login_required
 def generate_qr():
     payment_url = url_for("payment_page", _external=True)
-    
+
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(payment_url)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
-    
+
     buf = io.BytesIO()
     img.save(buf, format='PNG')
     buf.seek(0)
     img_base64 = base64.b64encode(buf.getvalue()).decode()
-    
+
     return render_template("qr_code.html", qr_code=img_base64, payment_url=payment_url, ngrok_url=None)
+
 
 @app.route("/payment")
 def payment_page():
     return render_template("payment.html")
+
 
 @app.route("/predict", methods=["POST"])
 @login_required
@@ -140,10 +128,7 @@ def predict():
     prediction = model.predict(X_scaled)[0]
     proba = model.predict_proba(X_scaled)[0][1]
 
-    if prediction == 1:
-        result = "🚨 FRAUD TRANSACTION"
-    else:
-        result = "✅ NORMAL TRANSACTION"
+    result = "🚨 FRAUD TRANSACTION" if prediction == 1 else "✅ NORMAL TRANSACTION"
 
     reasons = []
     if input_data.get("transaction_amount", 0) > 10000:
@@ -161,95 +146,112 @@ def predict():
 
     return render_template("result.html", result=result, probability=round(proba * 100, 2), features=input_data, reasons=reasons)
 
+
 @app.route("/api/predict", methods=["POST"])
 def api_predict():
     data = request.get_json()
-    input_data = {}
-    for key in data:
-        input_data[key] = float(data[key]) if data[key] else 0.0
+    input_data = {key: float(data[key]) if data[key] else 0.0 for key in data}
 
     X_vec = vectorizer.transform([input_data])
     X_scaled = scaler.transform(X_vec)
     prediction = model.predict(X_scaled)[0]
     proba = model.predict_proba(X_scaled)[0][1]
 
-    result = {"fraud": bool(prediction), "probability": round(proba * 100, 2), "status": "FRAUD" if prediction == 1 else "NORMAL", "timestamp": datetime.now().isoformat()}
-    
-    # Save transaction to database
-    transaction = Transaction(
-        user_id=session.get('user_id'),
-        amount=input_data.get('transaction_amount', 0),
-        transaction_type=int(input_data.get('transaction_type', 0)),
-        transaction_time=int(input_data.get('transaction_time', 0)),
-        account_balance=input_data.get('account_balance', 0),
-        merchant_risk=input_data.get('merchant_risk', 0),
-        is_fraud=bool(prediction),
-        fraud_probability=round(proba * 100, 2),
-        ip_address=request.remote_addr
-    )
-    db.session.add(transaction)
-    db.session.commit()
-    
+    result = {
+        "fraud": bool(prediction),
+        "probability": round(proba * 100, 2),
+        "status": "FRAUD" if prediction == 1 else "NORMAL",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+    supabase.table("transactions").insert({
+        "user_id": session.get("user_id"),
+        "amount": input_data.get("transaction_amount", 0),
+        "transaction_type": int(input_data.get("transaction_type", 0)),
+        "transaction_time": int(input_data.get("transaction_time", 0)),
+        "account_balance": input_data.get("account_balance", 0),
+        "merchant_risk": input_data.get("merchant_risk", 0),
+        "is_fraud": bool(prediction),
+        "fraud_probability": round(proba * 100, 2),
+        "ip_address": request.remote_addr,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }).execute()
+
     socketio.emit("transaction_result", result)
     return jsonify(result)
+
 
 @app.route("/analytics")
 @login_required
 def analytics():
-    total = Transaction.query.count()
-    fraud_count = Transaction.query.filter_by(is_fraud=True).count()
+    all_tx = supabase.table("transactions").select("is_fraud, fraud_probability, amount, timestamp").execute().data
+    total = len(all_tx)
+    fraud_count = sum(1 for t in all_tx if t["is_fraud"])
     normal_count = total - fraud_count
-    fraud_rate = (fraud_count / total * 100) if total > 0 else 0
-    
-    recent = Transaction.query.order_by(Transaction.timestamp.desc()).limit(10).all()
-    
-    stats = {
-        'total': total,
-        'fraud': fraud_count,
-        'normal': normal_count,
-        'fraud_rate': round(fraud_rate, 2)
-    }
-    
+    fraud_rate = round(fraud_count / total * 100, 2) if total > 0 else 0
+
+    recent = sorted(all_tx, key=lambda x: x["timestamp"], reverse=True)[:10]
+
+    stats = {"total": total, "fraud": fraud_count, "normal": normal_count, "fraud_rate": fraud_rate}
     return render_template("analytics.html", stats=stats, recent=recent)
+
 
 @app.route("/transactions")
 @login_required
 def transactions():
-    page = request.args.get('page', 1, type=int)
+    page = request.args.get("page", 1, type=int)
     per_page = 20
-    transactions = Transaction.query.order_by(Transaction.timestamp.desc()).paginate(page=page, per_page=per_page, error_out=False)
-    return render_template("transactions.html", transactions=transactions)
+    offset = (page - 1) * per_page
+
+    result = supabase.table("transactions").select("*", count="exact").order("timestamp", desc=True).range(offset, offset + per_page - 1).execute()
+    total = result.count
+    items = result.data
+
+    class Pagination:
+        def __init__(self, items, page, per_page, total):
+            self.items = items
+            self.page = page
+            self.per_page = per_page
+            self.total = total
+            self.pages = (total + per_page - 1) // per_page
+            self.has_prev = page > 1
+            self.has_next = page < self.pages
+            self.prev_num = page - 1
+            self.next_num = page + 1
+
+    return render_template("transactions.html", transactions=Pagination(items, page, per_page, total))
+
 
 @app.route("/export-csv")
 @login_required
 def export_csv():
-    import csv
     from io import StringIO
-    from flask import make_response
-    
+    all_tx = supabase.table("transactions").select("*").execute().data
+
     si = StringIO()
     writer = csv.writer(si)
-    writer.writerow(['ID', 'Amount', 'Type', 'Time', 'Balance', 'Merchant Risk', 'Fraud', 'Probability', 'Timestamp'])
-    
-    transactions = Transaction.query.all()
-    for t in transactions:
-        writer.writerow([t.id, t.amount, t.transaction_type, t.transaction_time, t.account_balance, t.merchant_risk, t.is_fraud, t.fraud_probability, t.timestamp])
-    
+    writer.writerow(["ID", "Amount", "Type", "Time", "Balance", "Merchant Risk", "Fraud", "Probability", "Timestamp"])
+    for t in all_tx:
+        writer.writerow([t["id"], t["amount"], t["transaction_type"], t["transaction_time"],
+                         t["account_balance"], t["merchant_risk"], t["is_fraud"], t["fraud_probability"], t["timestamp"]])
+
     output = make_response(si.getvalue())
     output.headers["Content-Disposition"] = "attachment; filename=transactions.csv"
     output.headers["Content-type"] = "text/csv"
     return output
 
+
 @app.route("/model-performance")
 @login_required
 def model_performance():
-    import json
     try:
-        with open('model_metrics.json', 'r') as f:
+        with open("model_metrics.json", "r") as f:
             metrics = json.load(f)
     except FileNotFoundError:
         metrics = None
     return render_template("model_performance.html", metrics=metrics)
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    socketio.run(app, host="0.0.0.0", port=port, debug=False,cors_allowed_origins="*", async_mode="eventlet")
+    socketio.run(app, host="0.0.0.0", port=port, debug=False)
