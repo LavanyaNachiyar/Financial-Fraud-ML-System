@@ -184,7 +184,11 @@ def api_predict():
 @app.route("/analytics")
 @login_required
 def analytics():
-    all_tx = supabase.table("transactions").select("is_fraud, fraud_probability, amount, timestamp").execute().data
+    all_tx = supabase.table("transactions").select("*").execute().data
+    for t in all_tx:
+        if isinstance(t.get("timestamp"), str):
+            t["timestamp"] = datetime.fromisoformat(t["timestamp"].replace("Z", "+00:00"))
+
     total = len(all_tx)
     fraud_count = sum(1 for t in all_tx if t["is_fraud"])
     normal_count = total - fraud_count
